@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jewellery Pricing Calculator</title>
+<style>
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    max-width: 720px;
+    margin: 40px auto;
+    padding: 0 20px;
+    color: #222;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  p.sub { color: #666; margin-top: 0; margin-bottom: 24px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 20px;
+    margin-bottom: 24px;
+  }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 4px;
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  button {
+    background: #1a56db;
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  button:hover { background: #1543a8; }
+  #result { margin-top: 28px; display: none; }
+  .card {
+    border: 1px solid #e2e2e2;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 14px;
+  }
+  .row.total {
+    border-top: 1px solid #e2e2e2;
+    margin-top: 6px;
+    padding-top: 8px;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .badge.pass { background: #d1f7d6; color: #166534; }
+  .badge.fail { background: #fde2e1; color: #991b1b; }
+  .big-number { font-size: 26px; font-weight: 600; margin: 6px 0; }
+  .label-sm { font-size: 13px; color: #666; }
+  .note { font-size: 12px; color: #888; margin: 8px 0 0; }
+  footer { margin-top: 40px; font-size: 12px; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>Jewellery selling price calculator</h1>
+<p class="sub">Checks selling price, then the net contribution from gold loss, alloy, diamond and finishing charges less actual labour incurred, against an 8-10% gross margin band.</p>
+
+<form id="priceForm">
+  <div class="grid">
+    <div class="field">
+      <label>Gold rate, 24K ($/gm)</label>
+      <input type="number" id="goldRate" value="140" step="0.5" required />
+    </div>
+    <div class="field">
+      <label>Gold purity</label>
+      <select id="purity">
+        <option value="1.000">24K (99.9%)</option>
+        <option value="0.916">22K (91.6%)</option>
+        <option value="0.750" selected>18K (75.0%)</option>
+        <option value="0.585">14K (58.5%)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Gross gold weight (gm)</label>
+      <input type="number" id="goldWt" value="2.5" step="0.05" min="2" max="3" required />
+    </div>
+    <div class="field">
+      <label>Agreed gold loss (%)</label>
+      <input type="number" id="goldLossPct" value="8" step="0.5" />
+    </div>
+    <div class="field">
+      <label>Alloy market rate ($/gm)</label>
+      <input type="number" id="alloyRate" value="0.08" step="0.01" />
+    </div>
+    <div class="field">
+      <label>Diamond weight (cts)</label>
+      <input type="number" id="diaWt" value="0.30" step="0.01" required />
+    </div>
+    <div class="field">
+      <label>Diamond rate ($/ct)</label>
+      <input type="number" id="diaRate" value="3000" step="50" required />
+    </div>
+    <div class="field">
+      <label>Diamond margin (%)</label>
+      <input type="number" id="diaMarginPct" value="15" step="0.5" />
+    </div>
+    <div class="field">
+      <label>CFP rate ($/gm)</label>
+      <input type="number" id="cfpRate" value="5" step="0.5" />
+    </div>
+    <div class="field">
+      <label>No. of stones</label>
+      <input type="number" id="stoneCount" value="1" step="1" min="0" />
+    </div>
+    <div class="field">
+      <label>Setting rate ($/stone)</label>
+      <input type="number" id="settingRate" value="0.20" step="0.05" />
+    </div>
+    <div class="field">
+      <label>Actual labour cost incurred ($)</label>
+      <input type="number" id="actualLabourCost" value="25" step="1" />
+    </div>
+  </div>
+  <button type="submit">Calculate price</button>
+</form>
+
+<div id="result">
+  <div class="card">
+    <div class="label-sm">Customer selling price</div>
+    <div class="big-number" id="outPrice"></div>
+    <div class="label-sm" id="outEmi"></div>
+  </div>
+
+  <div class="card">
+    <div class="label-sm" style="margin-bottom:8px; font-weight:600;">Cost breakdown</div>
+    <div class="row"><span>Gold billed (incl. loss)</span><span id="rGold"></span></div>
+    <div class="row"><span>Diamond cost + margin</span><span id="rDia"></span></div>
+    <div class="row"><span>CFP</span><span id="rCfp"></span></div>
+    <div class="row"><span>Setting</span><span id="rSetting"></span></div>
+    <div class="row total"><span>Selling price</span><span id="rTotal"></span></div>
+  </div>
+
+  <div class="card">
+    <div class="label-sm" style="margin-bottom:8px; font-weight:600;">Contribution build-up</div>
+    <div class="row"><span>+ Gold loss markup</span><span id="cGoldMarkup"></span></div>
+    <div class="row"><span>+ Alloy margin</span><span id="cAlloyMargin"></span></div>
+    <div class="row"><span>+ Diamond margin</span><span id="cDiaMargin"></span></div>
+    <div class="row"><span>+ CFP + Setting</span><span id="cCfpSetting"></span></div>
+    <div class="row"><span>- Actual labour incurred</span><span id="cLabour"></span></div>
+    <div class="row total"><span>Net contribution</span><span id="cNet"></span></div>
+    <p class="note">Gold loss, alloy spread and diamond margin are the profit sources; CFP/setting cover real finishing cost; actual labour is netted off.</p>
+  </div>
+
+  <div class="card">
+    <div class="label-sm" style="margin-bottom:8px; font-weight:600;">Does this piece qualify?</div>
+    <div class="row">
+      <span>Gross margin (target 8-10%)</span>
+      <span class="badge" id="badgeMargin"></span>
+    </div>
+    <div class="label-sm" id="marginDetail"></div>
+  </div>
+</div>
+
+<footer>Runs entirely in your browser - no data leaves this page.</footer>
+
+<script>
+function round2(n) { return Math.round(n * 100) / 100; }
+
+function calculatePrice(input) {
+  const {
+    goldRate, purity = 0.750, goldWt, goldLossPct = 8, alloyRate = 0.08,
+    diaWt, diaRate, diaMarginPct = 15,
+    cfpRate = 5, stoneCount = 1, settingRate = 0.20,
+    actualLabourCost = null,
+    targetMarginLow = 8, targetMarginHigh = 10,
+  } = input;
+
+  const pureGoldWt = goldWt * purity;
+  const alloyWt = goldWt * (1 - purity);
+  const pureGoldCostReal = pureGoldWt * goldRate;
+  const alloyCostReal = alloyWt * alloyRate;
+
+  const diaCostRaw = diaWt * diaRate;
+  const diaMarginAmount = diaCostRaw * (diaMarginPct / 100);
+  const diaCostMarked = diaCostRaw + diaMarginAmount;
+
+  const cfpCost = cfpRate * goldWt;
+  const settingCost = stoneCount * settingRate;
+
+  const goldBaseBilled = goldRate * goldWt;
+  const goldBilled = goldBaseBilled * (1 + goldLossPct / 100);
+  const goldLossMarkup = goldBilled - goldBaseBilled;
+  const alloyMargin = goldBaseBilled - pureGoldCostReal - alloyCostReal;
+
+  const sellingPrice = goldBilled + diaCostMarked + cfpCost + settingCost;
+
+  const result = {
+    breakdown: {
+      goldBilled: round2(goldBilled),
+      diamondCostWithMargin: round2(diaCostMarked),
+      cfpCost: round2(cfpCost),
+      settingCost: round2(settingCost),
+    },
+    contributionSources: {
+      goldLossMarkup: round2(goldLossMarkup),
+      alloyMargin: round2(alloyMargin),
+      diamondMargin: round2(diaMarginAmount),
+      cfpAndSetting: round2(cfpCost + settingCost),
+    },
+    sellingPrice: round2(sellingPrice),
+    emiInstallment: round2(sellingPrice / 4),
+  };
+
+  if (actualLabourCost !== null && !isNaN(actualLabourCost)) {
+    const bareCost = pureGoldCostReal + alloyCostReal + diaCostRaw + cfpCost + settingCost + actualLabourCost;
+    const netContribution = sellingPrice - bareCost;
+    const grossMarginPct = sellingPrice > 0 ? (netContribution / sellingPrice) * 100 : 0;
+    const inBand = grossMarginPct >= targetMarginLow && grossMarginPct <= targetMarginHigh;
+
+    result.marginCheck = {
+      actualLabourCost: round2(actualLabourCost),
+      netContribution: round2(netContribution),
+      grossMarginPct: round2(grossMarginPct),
+      targetBand: [targetMarginLow, targetMarginHigh],
+      withinTargetBand: inBand,
+    };
+  }
+
+  return result;
+}
+
+const form = document.getElementById('priceForm');
+const fmt = n => '$' + Number(n).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const payload = {};
+  ['goldRate','purity','goldWt','goldLossPct','alloyRate','diaWt','diaRate','diaMarginPct','cfpRate','stoneCount','settingRate','actualLabourCost']
+    .forEach(id => {
+      const val = document.getElementById(id).value;
+      if (val !== '') payload[id] = parseFloat(val);
+    });
+
+  const data = calculatePrice(payload);
+
+  document.getElementById('outPrice').textContent = fmt(data.sellingPrice);
+  document.getElementById('outEmi').textContent = '4 EMI of ' + fmt(data.emiInstallment) + ' each';
+
+  document.getElementById('rGold').textContent = fmt(data.breakdown.goldBilled);
+  document.getElementById('rDia').textContent = fmt(data.breakdown.diamondCostWithMargin);
+  document.getElementById('rCfp').textContent = fmt(data.breakdown.cfpCost);
+  document.getElementById('rSetting').textContent = fmt(data.breakdown.settingCost);
+  document.getElementById('rTotal').textContent = fmt(data.sellingPrice);
+
+  document.getElementById('cGoldMarkup').textContent = fmt(data.contributionSources.goldLossMarkup);
+  document.getElementById('cAlloyMargin').textContent = fmt(data.contributionSources.alloyMargin);
+  document.getElementById('cDiaMargin').textContent = fmt(data.contributionSources.diamondMargin);
+  document.getElementById('cCfpSetting').textContent = fmt(data.contributionSources.cfpAndSetting);
+
+  const badgeMargin = document.getElementById('badgeMargin');
+
+  if (data.marginCheck) {
+    document.getElementById('cLabour').textContent = '-' + fmt(data.marginCheck.actualLabourCost);
+    document.getElementById('cNet').textContent = fmt(data.marginCheck.netContribution);
+
+    const ok = data.marginCheck.withinTargetBand;
+    badgeMargin.textContent = ok ? 'Qualifies' : (data.marginCheck.grossMarginPct < data.marginCheck.targetBand[0] ? 'Below target' : 'Above target');
+    badgeMargin.className = 'badge ' + (ok ? 'pass' : 'fail');
+    document.getElementById('marginDetail').textContent =
+      'Gross margin is ' + data.marginCheck.grossMarginPct + '%, target band is ' +
+      data.marginCheck.targetBand[0] + '%-' + data.marginCheck.targetBand[1] + '%';
+  } else {
+    document.getElementById('cLabour').textContent = '-';
+    document.getElementById('cNet').textContent = '-';
+    badgeMargin.textContent = 'No data';
+    badgeMargin.className = 'badge fail';
+    document.getElementById('marginDetail').textContent = 'Enter actual labour cost to check margin';
+  }
+
+  document.getElementById('result').style.display = 'block';
+});
+</script>
+
+</body>
+</html>
